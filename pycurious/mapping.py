@@ -203,20 +203,19 @@ def grid(coords, data, extent, shape=None, epsg_in=None, epsg_out=None, **kwargs
 
     xtextent = [xtmin, xtmax, ytmin, ytmax]
 
-    # trim data - buffer = 5%
-    coords_trim, data_trim = trim(coords, data, xtextent, 0.05)
+    print(xtextent)
 
     if epsg_in is not None:
         # convert back to output CRS
         xtrim, ytrim = transform_coordinates(
-            coords_trim[:, 0], coords_trim[:, 1], epsg_in, epsg_out
+            coords[:, 0], coords[:, 1], epsg_in, epsg_out
         )
-        coords_trim = np.column_stack([xtrim, ytrim])
+        coords = np.column_stack([xtrim, ytrim])
 
     if shape == None:
         # estimate based on the data spacing
-        xunique = np.unique(coords_trim[:, 0])
-        yunique = np.unique(coords_trim[:, 1])
+        xunique = np.unique(coords[:, 0])
+        yunique = np.unique(coords[:, 1])
         dx = np.diff(xunique).mean()
         dy = np.diff(yunique).mean()
         nc = int((xtmax - xtmin) / dx)
@@ -233,7 +232,7 @@ def grid(coords, data, extent, shape=None, epsg_in=None, epsg_out=None, **kwargs
     ycoords = np.linspace(ymin, ymax, nr)
     xq, yq = np.meshgrid(xcoords, ycoords)
 
-    vq = griddata(coords_trim, data_trim, (xq, yq), **kwargs)
+    vq = griddata(coords, data, (xq, yq), **kwargs)
     return vq
 
 
