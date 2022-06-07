@@ -125,6 +125,6 @@ class CurieOptimiseTanaka(CurieGrid):
             CPD_stdev : float / 1D array
                 standard deviation
         """
-        CPD = 2.0*np.abs(z0) - np.abs(zt)
+        CPD = 2.0*z0 - zt
         CPD_stdev = np.sqrt(sigma_zt**2 + (sigma_z0*2)**2)
         return (CPD, CPD_stdev)
