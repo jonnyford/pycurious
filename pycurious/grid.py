@@ -343,6 +343,9 @@ class CurieGrid(CurieParallel):
             doi:10.1016/S0040-1951(99)00072-4
         """
 
+        # set nans to zero to have no effect on the power spectrum
+        subgrid[np.isnan(subgrid)] = 0.0
+
         # bin the spectrum and compute the taper
         vtaper, dk, kbins = self._taper_spectrum(subgrid, taper, **kwargs)
 

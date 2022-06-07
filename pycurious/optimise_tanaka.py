@@ -26,7 +26,8 @@ class CurieOptimiseTanaka(CurieGrid):
         zt_range=(0.2,0.3), 
         z0_range=(0,0.1), 
         taper=np.hanning, 
-        process_subgrid=None):
+        process_subgrid=None,
+        nan_fraction=0.5):
 
         def linear_func(x, a, b):
             return a*x + b
@@ -38,48 +39,54 @@ class CurieOptimiseTanaka(CurieGrid):
 
         # get subgrid
         subgrid = self.subgrid(window, xc, yc)
-        subgrid = process_subgrid(subgrid)
 
-        # calcualte spectra
-        k, Phi, sigma_Phi = self.radial_spectrum(subgrid, taper=taper, power=1)
-        Phi_n = np.log(np.exp(Phi)/k)
-        sigma_Phi_n = np.log(np.exp(sigma_Phi)/k)
+        # Test if subgrid is (nearly) empty before going further
+        number_nans = np.isnan(subgrid).sum()
+        if number_nans / subgrid.size >= nan_fraction:
+            zt_slope, z0_slope, zt_intercept, z0_intercept, zt_slope_stdev, z0_slope_stdev = [np.nan,] * 6
+        else:
+            subgrid = process_subgrid(subgrid)
 
-        z0_min, z0_max = z0_range
-        zt_min, zt_max = zt_range
+            # calcualte spectra
+            k, Phi, sigma_Phi = self.radial_spectrum(subgrid, taper=taper, power=1)
+            Phi_n = np.log(np.exp(Phi)/k)
+            sigma_Phi_n = np.log(np.exp(sigma_Phi)/k)
 
-        # divide everything by 2 pi
-        k_new = k/(2*np.pi)
-        Phi_new = Phi/(2*np.pi)
-        Phi_n_new = Phi_n/(2*np.pi)
+            z0_min, z0_max = z0_range
+            zt_min, zt_max = zt_range
 
-        sigma_Phi_new = sigma_Phi/(2*np.pi)
-        sigma_Phi_n_new = sigma_Phi_n/(2*np.pi)
+            # divide everything by 2 pi
+            k_new = k/(2*np.pi)
+            Phi_new = Phi/(2*np.pi)
+            Phi_n_new = Phi_n/(2*np.pi)
 
-        # mask zt range
-        mask_zt = np.logical_and(k_new >= zt_min, k_new <= zt_max)
-        k_zt = k_new[mask_zt]
-        Phi_zt = Phi_new[mask_zt]
-        sigma_Phi_zt = sigma_Phi_new[mask_zt]
+            sigma_Phi_new = sigma_Phi/(2*np.pi)
+            sigma_Phi_n_new = sigma_Phi_n/(2*np.pi)
 
-        # mask z0 range
-        mask_z0 = np.logical_and(k_new >= z0_min, k_new <= z0_max)
-        k_z0 = k_new[mask_z0]
-        Phi_z0 = Phi_n_new[mask_z0] # weighted
-        sigma_Phi_z0 = sigma_Phi_n_new[mask_z0]
+            # mask zt range
+            mask_zt = np.logical_and(k_new >= zt_min, k_new <= zt_max)
+            k_zt = k_new[mask_zt]
+            Phi_zt = Phi_new[mask_zt]
+            sigma_Phi_zt = sigma_Phi_new[mask_zt]
 
-        if np.count_nonzero(mask_zt) < 3:
-            raise ValueError("Not enough points inside zt_range, increase the range")
-        elif np.count_nonzero(mask_z0) < 3:
-            raise ValueError("Not enough points inside z0_range, increase the range") 
+            # mask z0 range
+            mask_z0 = np.logical_and(k_new >= z0_min, k_new <= z0_max)
+            k_z0 = k_new[mask_z0]
+            Phi_z0 = Phi_n_new[mask_z0] # weighted
+            sigma_Phi_z0 = sigma_Phi_n_new[mask_z0]
 
-        ## calcualte linear regression and return the residual (sum of squared errors (SSE))
-        (zt_slope, zt_intercept), zt_cov = curve_fit(linear_func, k_zt, Phi_zt, sigma=sigma_Phi_zt, absolute_sigma=True)
-        (z0_slope, z0_intercept), z0_cov = curve_fit(linear_func, k_z0, Phi_z0, sigma=sigma_Phi_z0, absolute_sigma=True)
+            if np.count_nonzero(mask_zt) < 3:
+                raise ValueError("Not enough points inside zt_range, increase the range")
+            elif np.count_nonzero(mask_z0) < 3:
+                raise ValueError("Not enough points inside z0_range, increase the range")
 
-        # standard deviation is the square root of the covariance matrix
-        zt_slope_stdev = np.sqrt(np.diag(zt_cov))[0]
-        z0_slope_stdev = np.sqrt(np.diag(z0_cov))[0]
+            ## calcualte linear regression and return the residual (sum of squared errors (SSE))
+            (zt_slope, zt_intercept), zt_cov = curve_fit(linear_func, k_zt, Phi_zt, sigma=sigma_Phi_zt, absolute_sigma=True)
+            (z0_slope, z0_intercept), z0_cov = curve_fit(linear_func, k_z0, Phi_z0, sigma=sigma_Phi_z0, absolute_sigma=True)
+
+            # standard deviation is the square root of the covariance matrix
+            zt_slope_stdev = np.sqrt(np.diag(zt_cov))[0]
+            z0_slope_stdev = np.sqrt(np.diag(z0_cov))[0]
 
         return (zt_slope, z0_slope, zt_intercept, z0_intercept, zt_slope_stdev, z0_slope_stdev)
 

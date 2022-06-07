@@ -240,6 +240,7 @@ class CurieOptimiseBouligand(CurieGrid):
         C=5.0,
         taper=np.hanning,
         process_subgrid=None,
+        nan_fraction=0.5,
         **kwargs
     ):
         """
@@ -293,13 +294,17 @@ class CurieOptimiseBouligand(CurieGrid):
         subgrid = self.subgrid(window, xc, yc)
         subgrid = process_subgrid(subgrid)
 
-        # compute radial spectrum
-        k, Phi, sigma_Phi = self.radial_spectrum(subgrid, taper=taper, **kwargs)
+        # Test if subgrid is (nearly) empty before going further
+        number_nans = np.isnan(subgrid).sum()
+        if number_nans / subgrid.size >= nan_fraction:
+            return [np.nan, ] * x0.size
+        else:
+            # compute radial spectrum
+            k, Phi, sigma_Phi = self.radial_spectrum(subgrid, taper=taper, **kwargs)
 
-        # minimise function
-        res = minimize(self.min_func, x0, args=(k, Phi, sigma_Phi), bounds=self.bounds)
-        return res.x
-
+            # minimise function
+            res = minimize(self.min_func, x0, args=(k, Phi, sigma_Phi), bounds=self.bounds)
+            return res.x
 
     def optimise_routine(
         self,

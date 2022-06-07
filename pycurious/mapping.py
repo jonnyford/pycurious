@@ -288,7 +288,7 @@ class SuppressStdout:
         sys.stdout.close()
         sys.stdout = self._original
 
-def import_geotiff(file_path, dummy_value=None):
+def import_geotiff(file_path):
     """
     Import a GeoTIFF to a numpy array and prints
     information of the Coordinate Reference System (CRS).
@@ -298,8 +298,6 @@ def import_geotiff(file_path, dummy_value=None):
     Args:
         file_path : str
             path to the GeoTIFF
-        dummy_value : float
-            replace the GeoTIFF dummy value with this, if not None
 
     Returns:
         data : 2D array
@@ -318,9 +316,9 @@ def import_geotiff(file_path, dummy_value=None):
     gtproj = gtiff.GetProjection()
     d_x, d_y = gtiff.RasterXSize, gtiff.RasterYSize
 
-    if dummy_value is not None:
-        dummy = grid.GetRasterBand(1).GetNoDataValue()
-        data[data == dummy] = dummy_value
+    # Set all dummy values to NaN
+    dummy = gtiff.GetRasterBand(1).GetNoDataValue()
+    data[data == dummy] = np.nan
 
     inproj = osr.SpatialReference()
     inproj.ImportFromWkt(gtproj)
