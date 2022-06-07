@@ -241,6 +241,7 @@ class CurieOptimiseBouligand(CurieGrid):
         taper=np.hanning,
         process_subgrid=None,
         nan_fraction=0.5,
+        k_range=None,
         **kwargs
     ):
         """
@@ -266,6 +267,8 @@ class CurieOptimiseBouligand(CurieGrid):
                 taper function, set to None for no taper function
             process_subgrids : function
                 a custom function to process the subgrid
+            k_range : tuple (k_min, k_max)
+                limit the inversion to a range of k-values if not None
             kwargs : keyword arguments
                 to pass to radial_spectrum.
 
@@ -302,8 +305,14 @@ class CurieOptimiseBouligand(CurieGrid):
             # compute radial spectrum
             k, Phi, sigma_Phi = self.radial_spectrum(subgrid, taper=taper, **kwargs)
 
+            # compute wavenumber range
+            if k_range is not None:
+                mask = (k >= k_range[0]) & (k <= k_range[1])
+            else:
+                mask = np.ones(k.shape, dtype=bool)
+
             # minimise function
-            res = minimize(self.min_func, x0, args=(k, Phi, sigma_Phi), bounds=self.bounds)
+            res = minimize(self.min_func, x0, args=(k[mask], Phi[mask], sigma_Phi[mask]), bounds=self.bounds)
             return res.x
 
     def optimise_routine(
