@@ -56,13 +56,13 @@ class CurieOptimiseBouligand(CurieGrid):
     Args:
         grid : 2D numpy array
             2D array of magnetic data
-        xmin : float
+        x_0 : float
             minimum x bound in metres
-        xmax : float
+        x_1 : float
             maximum x bound in metres
-        ymin : float
+        y_0 : float
             minimum y bound in metres
-        ymax : float
+        y_1 : float
             maximum y bound in metres
     
     Attributes:
@@ -72,13 +72,13 @@ class CurieOptimiseBouligand(CurieGrid):
             dictionary of priors for \\( \\beta, z_t, \\Delta z, C \\)
         grid : 2D numpy array
             2D array of magnetic data
-        xmin : float
+        x_0 : float
             minimum x bound in metres
-        xmax : float
+        x_1 : float
             maximum x bound in metres
-        ymin : float
+        y_0 : float
             minimum y bound in metres
-        ymax : float
+        y_1 : float
             maximum y bound in metres
         dx : float
             grid spacing in the x-direction in metres
@@ -99,9 +99,9 @@ class CurieOptimiseBouligand(CurieGrid):
         in incorrect Curie depth calculations.
     """
 
-    def __init__(self, grid, xmin, xmax, ymin, ymax, **kwargs):
+    def __init__(self, grid, x_0, x_1, y_0, y_1, **kwargs):
 
-        super(CurieOptimiseBouligand, self).__init__(grid, xmin, xmax, ymin, ymax)
+        super(CurieOptimiseBouligand, self).__init__(grid, x_0, x_1, y_0, y_1)
 
         # initialise prior dictionary
         self.reset_priors()

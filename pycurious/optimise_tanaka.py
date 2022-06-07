@@ -13,9 +13,9 @@ except:
 
 class CurieOptimiseTanaka(CurieGrid):
 
-    def __init__(self, grid, xmin, xmax, ymin, ymax, **kwargs):
+    def __init__(self, grid, x_0, x_1, y_0, y_1, **kwargs):
 
-        super(CurieOptimiseTanaka, self).__init__(grid, xmin, xmax, ymin, ymax)
+        super(CurieOptimiseTanaka, self).__init__(grid, x_0, x_1, y_0, y_1)
 
         self.max_processors = kwargs.pop("max_processors", cpu_count())
 

@@ -57,25 +57,25 @@ class CurieGrid(CurieParallel):
     Args:
         grid : 2D numpy array
             2D array of magnetic data
-        xmin : float
+        x_0 : float
             minimum x bound in metres
-        xmax : float
+        x_1 : float
             maximum x bound in metres
-        ymin : float
+        y_0 : float
             minimum y bound in metres
-        ymax : float
+        y_1 : float
             maximum y bound in metres
 
     Attributes:
         grid : 2D numpy array
             2D array of magnetic data
-        xmin : float
+        x_0 : float
             minimum x bound in metres
-        xmax : float
+        x_1 : float
             maximum x bound in metres
-        ymin : float
+        y_0 : float
             minimum y bound in metres
-        ymax : float
+        y_1 : float
             maximum y bound in metres
         dx : float
             grid spacing in the x-direction in metres
@@ -96,20 +96,29 @@ class CurieGrid(CurieParallel):
         in incorrect Curie depth calculations.
     """
 
-    def __init__(self, grid, xmin, xmax, ymin, ymax, **kwargs):
+    def __init__(self, grid, x_0, x_1, y_0, y_1, **kwargs):
 
         super(CurieGrid, self).__init__()
 
         self.data = np.array(grid)
         ny, nx = self.data.shape
-        self.xmin, self.xmax = xmin, xmax
-        self.ymin, self.ymax = ymin, ymax
-        self.xcoords, dx = np.linspace(xmin, xmax, nx, retstep=True)
-        self.ycoords, dy = np.linspace(ymin, ymax, ny, retstep=True)
+        dx = (x_1 - x_0) / nx
+        dy = (y_1 - y_0) / ny
+
+        # Move from cell edges to cell centers
+        self.x_0, self.x_1 = x_0 + dx / 2, x_1 - dx / 2
+        self.y_0, self.y_1 = y_0 + dy / 2, y_1 - dy / 2
+
+        self.xcoords, dx_check = np.linspace(self.x_0, self.x_1, nx, retstep=True)
+        self.ycoords, dy_check = np.linspace(self.y_0, self.y_1, ny, retstep=True)
+
+        assert dx == dx_check
+        assert dy == dy_check
+
         self.nx, self.ny = nx, ny
         self.dx, self.dy = dx, dy
 
-        if not np.allclose(dx, dy, 1.0):
+        if not np.allclose(abs(dx), abs(dy), 1.0):
             raise ValueError("node spacing should be identical {}".format((dx, dy)))
 
     def subgrid(self, window, xc, yc):
@@ -131,7 +140,7 @@ class CurieGrid(CurieParallel):
         """
 
         # check whether coordinate is inside grid
-        if xc < self.xmin or xc > self.xmax or yc < self.ymin or yc > self.ymax:
+        if xc < min(self.x_0, self.x_1) or xc > max(self.x_0, self.x_1) or yc < min(self.y_0, self.y_1) or yc > max(self.y_0, self.y_1):
             raise ValueError("Point {} outside data range".format((xc, yc)))
 
         # find nearest index to xc,yc

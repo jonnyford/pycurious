@@ -47,6 +47,8 @@ which would return a list of eastings and northings in IRENET95 projection.
 
 # -*- coding: utf-8 -*-
 import numpy as np
+import sys
+import os
 
 try:
     range = xrange
@@ -274,8 +276,19 @@ def ungrid(grid, extent, coordinates, **kwargs):
     # now interpolate
     return map_coordinates(grid, icoords.T, **kwargs)
 
+class SuppressStdout:
+    """
+    Redirect sys.stdout to /dev/null (or platform equivalent) to avoid spamming the console with text printed from libraries.
+    """
+    def __enter__(self):
+        self._original = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
 
-def import_geotiff(file_path):
+    def __exit__(self, *args):
+        sys.stdout.close()
+        sys.stdout = self._original
+
+def import_geotiff(file_path, dummy_value=None):
     """
     Import a GeoTIFF to a numpy array and prints
     information of the Coordinate Reference System (CRS).
@@ -285,37 +298,44 @@ def import_geotiff(file_path):
     Args:
         file_path : str
             path to the GeoTIFF
+        dummy_value : float
+            replace the GeoTIFF dummy value with this, if not None
 
     Returns:
         data : 2D array
         extent : tuple
             bounding box in the projection of the GeoTIFF
-            e.g. [xmin, xmax, ymin, ymax]
+            e.g. [x_0, x_1, y_0, y_1]
+        projection : tuple
+        cell_size : tuple (d_x,d_y)
     """
     from osgeo import gdal, osr
 
-    gtiff = gdal.Open(file_path)
+    with SuppressStdout():
+        gtiff = gdal.Open(str(file_path))
     data = gtiff.ReadAsArray()
     gt = gtiff.GetGeoTransform()
     gtproj = gtiff.GetProjection()
+    d_x, d_y = gtiff.RasterXSize, gtiff.RasterYSize
+
+    if dummy_value is not None:
+        dummy = grid.GetRasterBand(1).GetNoDataValue()
+        data[data == dummy] = dummy_value
 
     inproj = osr.SpatialReference()
     inproj.ImportFromWkt(gtproj)
 
     gtextent = (
         gt[0],
-        gt[0] + gtiff.RasterXSize * gt[1],
+        gt[0] + d_x * gt[1],
         gt[3],
-        gt[3] + gtiff.RasterYSize * gt[5],
+        gt[3] + d_y * gt[5],
     )
-
-    # print projection information
-    print(inproj)
 
     # this closes the geotiff
     gtiff = None
 
-    return data, gtextent
+    return data, gtextent, inproj, (d_x, d_y)
 
 
 def export_geotiff(file_path, array, extent, epsg):
