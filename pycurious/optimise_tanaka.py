@@ -42,15 +42,18 @@ class CurieOptimiseTanaka(CurieGrid):
 
         # Test if subgrid is (nearly) empty before going further
         number_nans = np.isnan(subgrid).sum()
-        if number_nans / subgrid.size >= nan_fraction:
-            zt_slope, z0_slope, zt_intercept, z0_intercept, zt_slope_stdev, z0_slope_stdev = [np.nan,] * 6
-        else:
+
+        try:
+            if number_nans / subgrid.size >= nan_fraction:
+                raise ValueError
+
             subgrid = process_subgrid(subgrid)
 
             # calcualte spectra
-            k, Phi, sigma_Phi = self.radial_spectrum(subgrid, taper=taper, power=1)
-            Phi_n = np.log(np.exp(Phi)/k)
-            sigma_Phi_n = np.log(np.exp(sigma_Phi)/k)
+            with np.errstate(divide='raise'):
+                k, Phi, sigma_Phi = self.radial_spectrum(subgrid, taper=taper, power=1)
+                Phi_n = np.log(np.exp(Phi)/k)
+                sigma_Phi_n = np.log(np.exp(sigma_Phi)/k)
 
             z0_min, z0_max = z0_range
             zt_min, zt_max = zt_range
@@ -87,6 +90,8 @@ class CurieOptimiseTanaka(CurieGrid):
             # standard deviation is the square root of the covariance matrix
             zt_slope_stdev = np.sqrt(np.diag(zt_cov))[0]
             z0_slope_stdev = np.sqrt(np.diag(z0_cov))[0]
+        except (ValueError, FloatingPointError):
+            zt_slope, z0_slope, zt_intercept, z0_intercept, zt_slope_stdev, z0_slope_stdev = [np.nan, ] * 6
 
         return (zt_slope, z0_slope, zt_intercept, z0_intercept, zt_slope_stdev, z0_slope_stdev)
 

@@ -299,9 +299,11 @@ class CurieOptimiseBouligand(CurieGrid):
 
         # Test if subgrid is (nearly) empty before going further
         number_nans = np.isnan(subgrid).sum()
-        if number_nans / subgrid.size >= nan_fraction:
-            return [np.nan, ] * x0.size
-        else:
+
+        try:
+            if number_nans / subgrid.size >= nan_fraction:
+                raise ValueError
+
             # compute radial spectrum
             k, Phi, sigma_Phi = self.radial_spectrum(subgrid, taper=taper, **kwargs)
 
@@ -314,6 +316,8 @@ class CurieOptimiseBouligand(CurieGrid):
             # minimise function
             res = minimize(self.min_func, x0, args=(k[mask], Phi[mask], sigma_Phi[mask]), bounds=self.bounds)
             return res.x
+        except ValueError:
+            return [np.nan, ] * x0.size
 
     def optimise_routine(
         self,

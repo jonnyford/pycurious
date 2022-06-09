@@ -313,7 +313,8 @@ def import_geotiff(file_path):
     data = gtiff.ReadAsArray()
     gt = gtiff.GetGeoTransform()
     gtproj = gtiff.GetProjection()
-    d_x, d_y = gtiff.RasterXSize, gtiff.RasterYSize
+    n_x, n_y = gtiff.RasterXSize, gtiff.RasterYSize
+    d_x, d_y = gt[1], gt[5]
 
     # Set all dummy values to NaN
     dummy = gtiff.GetRasterBand(1).GetNoDataValue()
@@ -324,9 +325,9 @@ def import_geotiff(file_path):
 
     gtextent = (
         gt[0],
-        gt[0] + d_x * gt[1],
+        gt[0] + n_x * d_x,
         gt[3],
-        gt[3] + d_y * gt[5],
+        gt[3] + n_y * d_y,
     )
 
     # this closes the geotiff
