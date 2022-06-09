@@ -111,9 +111,9 @@ class CurieGrid(CurieParallel):
 
         self.xcoords, dx_check = np.linspace(self.x_0, self.x_1, nx, retstep=True)
         self.ycoords, dy_check = np.linspace(self.y_0, self.y_1, ny, retstep=True)
-
-        assert dx == dx_check
-        assert dy == dy_check
+        
+        assert np.allclose(dx, dx_check, 1)
+        assert np.allclose(dy, dy_check, 1)
 
         self.nx, self.ny = nx, ny
         self.dx, self.dy = dx, dy
@@ -168,7 +168,7 @@ class CurieGrid(CurieParallel):
 
         return data
 
-    def create_centroid_list(self, window, spacingX=None, spacingY=None):
+    def create_centroid_list(self, window, spacingX=None, spacingY=None, subset=None):
         """
         Create a list of xc,yc values to extract subgrids.
 
@@ -181,6 +181,8 @@ class CurieGrid(CurieParallel):
             spacingY : float (optional)
                 specify spacing in metres in the Y direction
                 will default to maximum Y resolution
+            subset : tuple (optional)
+                limit the returned centroids to an x0, x1, y0, y1 range
 
         Returns:
             xc_list : 1D array
@@ -203,6 +205,11 @@ class CurieGrid(CurieParallel):
             xc = np.arange(xc.min(), xc.max(), spacingX)
         if spacingY is not None:
             yc = np.arange(yc.min(), yc.max(), spacingY)
+
+        if subset is not None:
+            x_0, x_1, y_0, y_1 = subset
+            xc = xc[(xc >= min(x_0, x_1)) & (xc <= max(x_0, x_1))]
+            yc = yc[(yc >= min(y_0, y_1)) & (yc <= max(y_0, y_1))]
 
         xq, yq = np.meshgrid(xc, yc)
 
