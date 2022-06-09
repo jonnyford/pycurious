@@ -27,7 +27,8 @@ class CurieOptimiseTanaka(CurieGrid):
         z0_range=(0,0.1), 
         taper=np.hanning, 
         process_subgrid=None,
-        nan_fraction=0.5):
+        nan_fraction=0.5,
+        **kwargs):
 
         if process_subgrid is None:
             # dummy function
@@ -45,22 +46,27 @@ class CurieOptimiseTanaka(CurieGrid):
                 raise ValueError
 
             subgrid = process_subgrid(subgrid)
-            zt_slope, z0_slope, zt_intercept, z0_intercept, zt_slope_stdev, z0_slope_stdev = self.invert(subgrid, zt_range, z0_range, taper)
+            zt_slope, z0_slope, zt_intercept, z0_intercept, zt_slope_stdev, z0_slope_stdev = self.invert(subgrid, zt_range, z0_range, taper, **kwargs)
 
         except (ValueError, FloatingPointError):
             zt_slope, z0_slope, zt_intercept, z0_intercept, zt_slope_stdev, z0_slope_stdev = [np.nan, ] * 6
 
         return (zt_slope, z0_slope, zt_intercept, z0_intercept, zt_slope_stdev, z0_slope_stdev)
 
-    def invert(self, subgrid, zt_range, z0_range, taper):
+    def calculate_spectra(self, subgrid, taper, **kwargs):
+        k, Phi, sigma_Phi = self.radial_spectrum(subgrid, taper=taper, power=1)
+        Phi_n = np.log(np.exp(Phi) / k)
+        sigma_Phi_n = np.log(np.exp(sigma_Phi) / k)
+
+        return k, Phi, Phi_n, sigma_Phi, sigma_Phi_n
+
+    def invert(self, subgrid, zt_range, z0_range, taper, **kwargs):
         def linear_func(x, a, b):
             return a*x + b
 
         # calcualte spectra
         with np.errstate(divide='raise'):
-            k, Phi, sigma_Phi = self.radial_spectrum(subgrid, taper=taper, power=1)
-            Phi_n = np.log(np.exp(Phi) / k)
-            sigma_Phi_n = np.log(np.exp(sigma_Phi) / k)
+            k, Phi, Phi_n, sigma_Phi, sigma_Phi_n = self.calculate_spectra(subgrid, taper=taper, **kwargs)
 
         z0_min, z0_max = z0_range
         zt_min, zt_max = zt_range
